@@ -1,0 +1,5 @@
+include covid_database/reagents.yaml
+include covid_database/GIT_HEAD
+include covidhub/config.yaml
+include qpcr_processing/GIT_HEAD
+include qpcr_processing/pdf_resources/*.jpg

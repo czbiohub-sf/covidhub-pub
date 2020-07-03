@@ -1,0 +1,211 @@
+# This workflow will install Python dependencies and run tests with a single version of Python
+
+name: tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+
+    outputs:
+      covid_run_comet_tests: ${{ steps.relevant.outputs.covid_run_comet_tests }}
+      covid_run_database_tests: ${{ steps.relevant.outputs.covid_run_database_tests }}
+      covid_run_qpcr_tests: ${{ steps.relevant.outputs.covid_run_qpcr_tests }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+    - name: Identify the tests required
+      id: relevant
+      run: |
+        [ "${{ github.event_name }}" != "pull_request" ]            && \
+            echo "Not a pull request.  Running all tests"           && \
+            echo "::set-output name=covid_run_comet_tests::true"    && \
+            echo "::set-output name=covid_run_database_tests::true" && \
+            echo "::set-output name=covid_run_qpcr_tests::true"     && \
+            exit 0
+
+        base_ref_latest=$(git rev-list HEAD^@ | grep -v ${{ github.event.pull_request.head.sha }})
+        echo "merge commit sha: ${{ github.event.pull_request.merge_commit_sha }}"
+        echo "head commit sha: $(git rev-parse HEAD)"
+        echo "base latest commit sha: $base_ref_latest"
+        echo "Files changed:"
+        git diff --name-only -r $base_ref_latest
+
+        covid_run_comet_tests=true
+        covid_run_database_tests=true
+        covid_run_qpcr_tests=true
+
+        # for comet ignore changes in
+        #   covid_database (code/covid_database/)
+        #   qpcr_processing application code (code/qpcr_processing/)
+        #   qpcr_processing application images (images/)
+        #   qpcr_processing test code (example_files/)
+        git diff --name-only -r $base_ref_latest | egrep -qv '^(code/covid_database/|code/qpcr_processing/|example_files/|images/)' || \
+        covid_run_comet_tests=false
+
+        # for database ignore changes in
+        #   comet code (code/comet/, google_appscript/, and notebooks/)
+        #   qpcr_processing application images (images/)
+        #   qpcr_processing test code (example_files/)
+        git diff --name-only -r $base_ref_latest | egrep -qv '^(code/comet/|google_appscript/|notebooks/|images/|example_files/)' || \
+        covid_run_database_tests=false
+
+        # for qpcr_processing, ignore changes in
+        #   comet code (code/comet/, google_appscript/, and notebooks/)
+        #   covid_database (code/covid_database/)
+        git diff --name-only -r $base_ref_latest | egrep -qv '^(code/comet/|google_appscript/|notebooks/|code/covid_database/)' || \
+        covid_run_qpcr_tests=false
+
+        echo "Run comet tests: $covid_run_comet_tests"
+        echo "Run database tests: $covid_run_database_tests"
+        echo "Run qpcr tests: $covid_run_qpcr_tests"
+
+        echo "::set-output name=covid_run_comet_tests::$covid_run_comet_tests"
+        echo "::set-output name=covid_run_database_tests::$covid_run_database_tests"
+        echo "::set-output name=covid_run_qpcr_tests::$covid_run_qpcr_tests"
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install and upgrade pip
+      run: |
+        python -m pip install --upgrade pip wheel
+        pip install black flake8 git+https://github.com/timothycrosley/isort.git@cd9c2f6e70196bd429d0179635e0fac2d034ac5e
+    - name: Verify code style
+      run: |
+        make -k style
+
+  comet-tests:
+    runs-on: ubuntu-latest
+    needs: code-style
+    if: needs.code-style.outputs.covid_run_comet_tests == 'true'
+
+    steps:
+      # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 pytest pytest-xdist
+          pip install -e code
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.pythonLocation }}
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/setup.py') }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+      - name: Run with pytest
+        run: |
+          make unit-tests-comet
+
+  covid-database-tests:
+    runs-on: ubuntu-latest
+    needs: code-style
+    if: needs.code-style.outputs.covid_run_database_tests == 'true'
+
+    steps:
+      # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 pytest pytest-xdist
+          pip install -e code
+      - name: Pull the docker image
+        run: |
+          docker pull postgres:11.5-alpine
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.pythonLocation }}
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/setup.py') }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+      - name: Run with pytest
+        run: |
+          make unit-tests-covid-database
+
+  qpcr-processing-tests-parts:
+    runs-on: ubuntu-latest
+    needs: code-style
+    if: needs.code-style.outputs.covid_run_qpcr_tests == 'true'
+
+    strategy:
+      matrix:
+        test-name:
+          - unit-tests-qpcr-processing
+          - integration-tests
+          - local-processing-tests
+          - full-processing-tests
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Setup AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+    - name: Install and upgrade pip
+      run: |
+        python -m pip install --upgrade pip wheel
+    - name: Cache dependencies
+      id: cache-deps
+      uses: actions/cache@v1
+      with:
+        path: ${{ env.pythonLocation }}
+        key: ${{ runner.os }}-deps-${{ hashFiles('**/setup.py') }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-deps-
+    - name: Install code
+      run: |
+        pip install pytest pytest-xdist boto3 lxml
+        pip install -e code
+    - name: Test with pytest
+      run: |
+        make ${{ matrix.test-name }}
+
+  qpcr-processing-tests:
+    runs-on: ubuntu-latest
+    needs: qpcr-processing-tests-parts
+    steps:
+    # a step is required, so we just don't do much.
+    - name: Finish
+      run: |
+        echo "Done!"

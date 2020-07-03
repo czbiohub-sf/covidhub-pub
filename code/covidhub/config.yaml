@@ -1,0 +1,107 @@
+GENERAL:
+  timezone: America/Los Angeles
+EMAIL:
+  sender: !ENV ${SENDER_EMAIL}
+  recipients: !ENV ${RECEIVER_EMAILS}
+SMS:
+  recipients: !ENV ${RECEIVER_SMS}
+AWS:
+  cloudwatch_namespace: covid-19
+  region: us-west-2
+DB_CONNECTION:
+  db_secret_name: !ENV ${DB_SECRET_NAME}
+SLACK:
+  alert_channel: '#covid19data_ops'
+  enabled: !ENV ${SLACK_ENABLED}
+  url: !ENV ${SLACK_URL}
+  max_minute_rate: 10
+DATA:
+  # This is the gdrive id for our form results file. Important!
+  collection_form_spreadsheet_id: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  # this is the gdrive id for the form choices. Needed for populating the database
+  form_choice_spreadsheet_id: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  # Do not process Sample Barcodes for accession tracking
+  do_not_process_spreadsheet_id: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  input_drive_path: !ENV ${INPUT_GDRIVE_PATH}
+  output_drive_path: !ENV ${OUTPUT_GDRIVE_PATH}
+  accession_tracking_sheet_id: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  clin_lab_reporting_sheet_id: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  supervisor_plate_queue_sheet_id: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  accession_tracking_sheet: !ENV ${ACCESSION_TRACKING_SHEET}
+  clin_lab_reporting_sheet: !ENV ${CLIN_LAB_REPORTING_SHEET}
+  supervisor_plate_queue_sheet: !ENV ${PLATE_QUEUE_SHEET}
+  accession_tracking_markers_folder:
+    - Accession Tracking
+    - tracking_markers
+  # this is where the PCR logs are written to by the PCR machines.
+  pcr_logs_folder:
+    - qPCR Results
+    - logs
+  # where to save processed layout files
+  plate_layout_pdf_folder:
+    - Plate Layouts
+    - Plate Map
+  # where to save the PDF and csv results
+  final_reports_folder:
+    - Pipeline Results
+    - final_reports
+  # this is where the results of the pipeline are written to.
+  csv_reports_folder:
+    - Pipeline Results
+    - csv_reports
+  # this is where the results of the pipeline are written to.
+  china_basin_csv_reports_folder:
+    - Pipeline Results
+    - china_basin_csv_reports
+  # this is where we save the markers for the barcodes we've processed.
+  pcr_markers_folder:
+    - Pipeline Results
+    - processing_markers
+  plate_layout_folder:
+    - Sample Plate Metadata Registration (File responses)
+    - Please upload the sample plate map (File responses)
+  accession_locations_folder:
+    - Accession Locations
+  # the main form responses spreadsheet for ngs sample tracking
+  og_plate_metadata_folder:
+    - COVID19_mNGS_forms
+    - 1-COMET Sample Arrival (File responses)
+    - Please upload the metadata (.xlsx file) associated with the OG plate (File responses)
+  legacy_internal_samples_folder:
+    - COVID19_mNGS_forms
+    - 1-COMET Sample Arrival (File responses)
+    - R_OG_Plate_Uploads
+  legacy_external_metadata_folder:
+    - COVID19_mNGS_forms
+    - 0-COMET External Samples Metadata (File responses)
+    - legacy_external_metadata
+  mNGS_sample_tracking_form_responses_sheet_id: 1bz9YwlvWW_FH1YtHrYfhdyilpz-yoCbXTtfiKOXsIHY
+  library_plate_layout_folder:
+    - COVID19_mNGS_forms
+    - 3-COMET 384 Plate Map
+  og_plates_megasheet_sheet_id: 1-47HkAChDAO-W2-MEM7Xw70YRgMnqOc6mOPC7-q6jB0
+  working_plate_layout_folder:
+    - COVID19_mNGS_forms
+    - 2-COMET Input Plate (File responses)
+  project_sheet_id: 1U_mD7uWKatPhHo7mT-YGYCPFwe90E26g1wIPVVmigl8
+  # comet locations
+  comet_form1_folder:
+    - COVID19_mNGS_forms
+    - 1-COMET Sample Arrival (File responses)
+  comet_form0_update_files_folder:
+    - COVID19_mNGS_forms
+    - 0-COMET External Samples Metadata (File responses)
+    - Update Files
+  comet_form2_folder:
+    - COVID19_mNGS_forms
+    - 2-COMET Input Plate (File responses)
+  comet_form3_folder:
+    - COVID19_mNGS_forms
+    - 3-COMET 384 Plate Map
+  comet_form4_folder:
+    - COVID19_mNGS_forms
+    - 4- COMET Index plates (File responses)
+  comet_form7_folder:
+    - COVID19_mNGS_forms
+    - 7 - COMET Sample Lookup (File responses)
+

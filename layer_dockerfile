@@ -1,0 +1,16 @@
+FROM lambci/lambda:build-python3.7
+
+COPY ./requirements.txt /tmp/requirements.txt
+# some packages need to be built from source for us to fit under AWS lambda size limits.
+RUN cat /tmp/requirements.txt | egrep '^(numpy|pandas)' | sed -E 's/$/ --global-option=build_ext --global-option="-j 4"/' > /tmp/compiled-requirements.txt
+
+# the packages that need to be compiled must be installed first because the binary packages might require the compiled packages.
+RUN CFLAGS="-Os -g0 -DNDEBUG -I/usr/include:/usr/local/include -L/usr/lib:/usr/local/lib" \
+    pip install \
+    -t /python/lib/python3.7/site-packages \
+    -r /tmp/compiled-requirements.txt
+RUN pip install \
+    -t /python/lib/python3.7/site-packages \
+    -r /tmp/requirements.txt
+RUN find /python/lib/python3.7/site-packages -name tests -type d -print0 | xargs -0 rm -r
+RUN zip -r9 /dep_layer.zip /python > /dev/null
