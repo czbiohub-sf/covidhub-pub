@@ -2,6 +2,8 @@
 
 This repository contains multiple projects related to the COVID19 work going on at the Biohub.
 
+*This public version of the repo is missing test data (which contains real test results) and credentials for Google Drive and AWS. We hope that the code base and architecture may nevertheless prove useful for others.*
+
 ## Projects
 
 Sourcecode for these projects is located in the `code` directory. Detailed READMEs are in the `docs` directory.
